@@ -99,9 +99,9 @@ The example bellow shows all the possible configurations:
         -- ignored by delve in dap mode.
         build_flags = "",
         -- whether the dlv process to be created detached or not. there is
-        -- an issue on Windows where this needs to be set to false
-        -- otherwise the dlv server creation will fail.
-        detached = true
+        -- an issue on delve versions < 1.24.0 for Windows where this needs to be
+        -- set to false, otherwise the dlv server creation will fail.
+        detached = vim.fn.has("win32") == 0,
       },
       -- options related to running closest test
       tests = {
@@ -127,6 +127,15 @@ Debugging Individual Tests                        *dap-go-debug-test*
 To debug the closest method above the cursor use you can run:
 >
     :lua require('dap-go').debug_test()`
+<
+
+The |dap-configuration| in use can be customized by passing an optional
+table argument to `debug-test`. For example, you can override default
+build flags as follows:
+>lua
+    require("dap-go").debug_test({
+      buildFlags = "-tags=integration",
+    })
 <
 
 Once a test runs, you can simply run it again from anywhere:

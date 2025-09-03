@@ -14,9 +14,10 @@ local default_config = {
     port = "${port}",
     args = {},
     build_flags = "",
-    -- Automativally handle the issue on Windows where delve needs
-    -- to be run in attched mode or it will fail (actually crashes).
+    -- Automatically handle the issue on delve Windows versions < 1.24.0
+    -- where delve needs to be run in attched mode or it will fail (actually crashes).
     detached = vim.fn.has("win32") == 0,
+    output_mode = "remote",
   },
   tests = {
     verbose = false,
@@ -115,6 +116,7 @@ local function setup_go_configuration(dap, configs)
       request = "launch",
       program = "${file}",
       buildFlags = configs.delve.build_flags,
+      outputMode = configs.delve.output_mode,
     },
     {
       type = "go",
@@ -123,6 +125,7 @@ local function setup_go_configuration(dap, configs)
       program = "${file}",
       args = get_arguments,
       buildFlags = configs.delve.build_flags,
+      outputMode = configs.delve.output_mode,
     },
     {
       type = "go",
@@ -131,6 +134,7 @@ local function setup_go_configuration(dap, configs)
       program = "${file}",
       args = get_arguments,
       buildFlags = get_build_flags,
+      outputMode = configs.delve.output_mode,
     },
     {
       type = "go",
@@ -138,6 +142,7 @@ local function setup_go_configuration(dap, configs)
       request = "launch",
       program = "${fileDirname}",
       buildFlags = configs.delve.build_flags,
+      outputMode = configs.delve.output_mode,
     },
     {
       type = "go",
@@ -154,6 +159,7 @@ local function setup_go_configuration(dap, configs)
       mode = "test",
       program = "${file}",
       buildFlags = configs.delve.build_flags,
+      outputMode = configs.delve.output_mode,
     },
     {
       type = "go",
@@ -162,6 +168,7 @@ local function setup_go_configuration(dap, configs)
       mode = "test",
       program = "./${relativeFileDirname}",
       buildFlags = configs.delve.build_flags,
+      outputMode = configs.delve.output_mode,
     },
   }
 
@@ -194,7 +201,7 @@ function M.setup(opts)
   setup_go_configuration(dap, internal_global_config)
 end
 
-local function debug_test(testname, testpath, build_flags, extra_args)
+local function debug_test(testname, testpath, build_flags, extra_args, custom_config)
   local dap = load_module("dap")
 
   local config = {
@@ -205,7 +212,9 @@ local function debug_test(testname, testpath, build_flags, extra_args)
     program = testpath,
     args = { "-test.run", "^" .. testname .. "$" },
     buildFlags = build_flags,
+    outputMode = "remote",
   }
+  config = vim.tbl_deep_extend("force", config, custom_config or {})
 
   if not vim.tbl_isempty(extra_args) then
     table.move(extra_args, 1, #extra_args, #config.args + 1, config.args)
@@ -214,7 +223,7 @@ local function debug_test(testname, testpath, build_flags, extra_args)
   dap.run(config)
 end
 
-function M.debug_test()
+function M.debug_test(custom_config)
   local test = ts.closest_test()
 
   if test.name == "" or test.name == nil then
@@ -233,7 +242,7 @@ function M.debug_test()
     extra_args = { "-test.v" }
   end
 
-  debug_test(test.name, test.package, M.test_buildflags, extra_args)
+  debug_test(test.name, test.package, M.test_buildflags, extra_args, custom_config)
 
   return true
 end
